@@ -1,3 +1,5 @@
+# the csv file must be loaded into google collab following the structure: two columns with headers "email", "user_group"
+
 !pip install pandas tableauserverclient
 
 import pandas as pd
