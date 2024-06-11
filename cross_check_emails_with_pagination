@@ -1,0 +1,86 @@
+!pip install pandas tableauserverclient
+
+import pandas as pd
+import tableauserverclient as TSC
+
+# Define your Tableau Server details
+server_url = 'https://tableau.apps.fao.org'  # Replace with your server URL
+token_name = 'XXX'  # Replace with your PAT name
+personal_access_token = 'XXX'  # Replace with your PAT
+site = ''  # Leave empty if using the default site
+
+# Create a Tableau auth object using the PAT
+tableau_auth = TSC.PersonalAccessTokenAuth(token_name, personal_access_token, site)
+
+# Create a server object
+server = TSC.Server(server_url, use_server_version=True)
+######################################################################################
+# Function to read users from a CSV file using pandas
+def read_users_from_csv(file_path):
+    try:
+        df = pd.read_csv(file_path, encoding='utf-8-sig')  # Handle BOM if present
+        df.columns = df.columns.str.strip()  # Remove any leading/trailing spaces from column names
+        print("CSV DataFrame Head:\n", df.head())  # Print the first few rows of the DataFrame
+        print("CSV DataFrame Columns:\n", df.columns)  # Print the columns of the DataFrame
+        users = df['email'].tolist()  # Keep original case
+        return users
+    except Exception as e:
+        print(f"Error reading CSV file: {e}")
+        return []
+
+######################################################################################
+# Function to retrieve all users from the server with pagination
+def get_all_users():
+    all_users = []
+    req_option = TSC.RequestOptions(pagenumber=1)
+    while True:
+        users, pagination_item = server.users.get(req_option)
+        all_users.extend(users)
+        if pagination_item.page_number * pagination_item.page_size >= pagination_item.total_available:
+            break
+        req_option.pagenumber += 1
+    return all_users
+
+######################################################################################
+# Function to cross-check emails and identify matches
+def cross_check_emails(server_users, csv_users):
+    server_emails = {user.name.lower(): user for user in server_users}
+    matched_users = []
+    unmatched_users = []
+    for email in csv_users:
+        email_lower = email.lower()
+        if email_lower in server_emails:
+            matched_users.append(server_emails[email_lower])
+        else:
+            unmatched_users.append(email)
+    return matched_users, unmatched_users
+
+######################################################################################
+# Main function to orchestrate the process
+def main():
+    users_csv_path = 'paid_focal_points.csv'  # Path to the CSV file with usernames
+    try:
+        print("Attempting to sign in to Tableau Server using PAT...")
+        with server.auth.sign_in(tableau_auth):
+            print("Successfully signed in to Tableau Server")
+            # Read users from CSV
+            csv_users = read_users_from_csv(users_csv_path)
+            if not csv_users:
+                print("No users found in CSV file.")
+                return
+            # Get all users from the server with pagination
+            server_users = get_all_users()
+            # Cross-check emails and identify matches
+            matched_users, unmatched_users = cross_check_emails(server_users, csv_users)
+            # Print the results
+            print("\nMatched Users:")
+            for user in matched_users:
+                print(user.name)
+            print("\nUnmatched Users from CSV:")
+            for email in unmatched_users:
+                print(email)
+    except TSC.ServerResponseError as e:
+        print(f"Error signing in to Tableau Server: {e}")
+
+if __name__ == "__main__":
+    main()
