@@ -1,0 +1,96 @@
+!pip install tableauserverclient
+
+import getpass
+import tableauserverclient as TSC
+
+################################################################################
+def main():
+    # 1 - replace with your server URL
+    server_url = "https://10ax.online.tableau.com"
+
+    # 2 - change to false **for testing only** if you get a certificate error
+    use_ssl = True
+    server = TSC.Server(server_url, use_server_version=True, http_options={"verify": use_ssl})
+
+    print("Connected to {}".format(server.server_info.baseurl))
+
+    # 3 - replace with your site name exactly as it looks in a URL
+    # e.g., https://my-server/#/this-is-your-site-url-name/
+    site_url_name = ""  # leave empty if there is no site name in the URL (you are on the default site)
+
+    # 4 - personal access token authentication
+    token_name = "xxxx"
+    token_value = "xxxxx"
+    tableau_auth = TSC.PersonalAccessTokenAuth(token_name, token_value, site_id=site_url_name)
+
+    with server.auth.sign_in(tableau_auth):
+        projects, pagination = server.projects.get()
+        if projects:
+            print("{} projects".format(pagination.total_available))
+            for project in projects:
+                print(project.name)
+
+        workbooks, pagination = server.workbooks.get()
+        if workbooks:
+            print("{} workbooks".format(pagination.total_available))
+            print(workbooks[0])
+
+        views, pagination = server.views.get()
+        if views:
+            print("{} views".format(pagination.total_available))
+            print(views[0])
+
+        datasources, pagination = server.datasources.get()
+        if datasources:
+            print("{} datasources".format(pagination.total_available))
+            print(datasources[0])
+
+        jobs, pagination = server.jobs.get()
+        if jobs:
+            print("{} jobs".format(pagination.total_available))
+            print(jobs[0])
+
+        schedules, pagination = server.schedules.get()
+        if schedules:
+            print("{} schedules".format(pagination.total_available))
+            print(schedules[0])
+
+        tasks, pagination = server.tasks.get()
+        if tasks:
+            print("{} tasks".format(pagination.total_available))
+            print(tasks[0])
+
+        webhooks, pagination = server.webhooks.get()
+        if webhooks:
+            print("{} webhooks".format(pagination.total_available))
+            print(webhooks[0])
+
+        users, pagination = server.users.get()
+        if users:
+            print("{} users".format(pagination.total_available))
+            print(users[0])
+
+        groups, pagination = server.groups.get()
+        if groups:
+            print("{} groups".format(pagination.total_available))
+            print(groups[0])
+
+if __name__ == "__main__":
+    main()
+################################################################################
+3 projects
+default
+Samples
+test
+3 workbooks
+<WorkbookItem 18cbcde5-0421-4d2e-aab5-555d7e213ea6 'Superstore' contentUrl='Superstore' project=7bb6e169-aa40-4d80-9150-63a7dea5ce74>
+18 views
+<ViewItem fdced6ca-c6a4-4b1c-9da5-22622b427654 'Overview' contentUrl='Superstore/sheets/Overview' project=7bb6e169-aa40-4d80-9150-63a7dea5ce74>
+1 datasources
+<Datasource e9cf66a5-80c1-4923-af23-37d87aef7fcf 'Superstore Datasource' (No Description parent=7bb6e169-aa40-4d80-9150-63a7dea5ce74 >
+89 schedules
+<Schedule#e04f23a7-8d82-49c9-b6a8-97bb1b6dc56a "Weekday mornings" None>
+7 users
+<User ad424841-392e-4e63-aefa-130709df8a8c name=laiza.andriolo@fao.org role=SiteAdministratorCreator>
+3 groups
+GroupItem({'_id': '4afc8890-4694-4f8a-9a9a-1132a280d211', '_license_mode': None, '_minimum_site_role': None, '_users': None, '_name': 'All Users', '_domain_name': 'local'})
