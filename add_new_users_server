@@ -1,9 +1,9 @@
-# The structure of the csv file updated on google collab should be: one single column with header "email"
+# The structure of the xlsx file updated on google collab should be: one single column with header "email"
 
 import pandas as pd
 
 # Read the Excel file
-file_path = "emails_test.xlsx" # add excel file to Collab
+file_path = "xxxx.xlsx" # add excel file to Collab
 df = pd.read_excel(file_path) # remove header
 
 # Rename the column "Email Address" to "user_name"
@@ -33,5 +33,5 @@ df['email_address'] = df['user_name']
 print(df) # display df
 
 # Export as CSV without headers
-csv_file_path = '/content/emails_output.csv'
+csv_file_path = '/xxx.csv' # replace by name of the csv file
 df.to_csv(csv_file_path, index=False)
