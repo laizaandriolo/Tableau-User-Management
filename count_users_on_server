@@ -1,0 +1,47 @@
+!pip install pandas tableauserverclient
+
+import pandas as pd
+import tableauserverclient as TSC
+
+# Define your Tableau Server details
+server_url = 'https://10ax.online.tableau.com/'  # Replace with your server URL
+token_name = 'xxx'  # Replace with your PAT name
+personal_access_token = 'xxxxx'  # Replace with your PAT
+site = ''  # Leave empty if using the default site
+
+# Create a Tableau auth object using the PAT
+tableau_auth = TSC.PersonalAccessTokenAuth(token_name, personal_access_token, site)
+
+# Create a server object
+server = TSC.Server(server_url, use_server_version=True)
+
+#########################################################################################################
+
+# Function to retrieve all users from the server with pagination
+def get_all_users():
+    all_users = []
+    req_option = TSC.RequestOptions(pagenumber=1)
+    while True:
+        users, pagination_item = server.users.get(req_option)
+        all_users.extend(users)
+        if pagination_item.page_number * pagination_item.page_size >= pagination_item.total_available:
+            break
+        req_option.pagenumber += 1
+    return all_users
+#########################################################################################################
+# Main function to count users
+def main():
+    try:
+        print("Attempting to sign in to Tableau Server using PAT...")
+        with server.auth.sign_in(tableau_auth):
+            print("Successfully signed in to Tableau Server")
+            # Get all users from the server with pagination
+            server_users = get_all_users()
+            # Count the number of users
+            user_count = len(server_users)
+            print(f"Total number of users on the server: {user_count}")
+    except TSC.ServerResponseError as e:
+        print(f"Error signing in to Tableau Server: {e}")
+
+if __name__ == "__main__":
+    main()
