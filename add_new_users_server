@@ -1,4 +1,4 @@
-# The structure of the csv file updated on google collab should follow: one single column with header "email"
+# The structure of the csv file updated on google collab should be: one single column with header "email"
 
 import pandas as pd
 
