@@ -1,0 +1,146 @@
+# For this procedure, we need to uploaded in Google Collab a csv file with the following structure: 
+# two columns: "email",	"user_group"
+
+####################################################################################################
+!pip install pandas tableauserverclient
+
+import pandas as pd
+import tableauserverclient as TSC
+
+# Define your Tableau Server details
+server_url = 'https://10ax.online.tableau.com/'  # Replace with your server URL
+token_name = 'xxxx'  # Replace with your PAT name
+personal_access_token = 'xxxx'  # Replace with your PAT
+site = ''  # Leave empty if using the default site
+group_name = 'xxx'  # The name of the group to be created or added to
+
+# Create a Tableau auth object using the PAT
+tableau_auth = TSC.PersonalAccessTokenAuth(token_name, personal_access_token, site)
+
+# Create a server object
+server = TSC.Server(server_url, use_server_version=True)
+
+####################################################################################################
+# Load the CSV file
+users_df = pd.read_csv('/xxxx.csv') # You need to import csv file into Google Colab and add the name here
+
+def read_users_from_csv(file_path):
+    try:
+        # Read the CSV file, handling potential BOM with 'utf-8-sig' encoding
+        df = pd.read_csv(file_path, encoding='utf-8-sig')
+
+        # Remove any leading/trailing spaces from column names
+        df.columns = df.columns.str.strip()
+
+        # Print the first few rows of the DataFrame for verification
+        print("CSV DataFrame Head:\n", df.head())
+
+        # Print the columns of the DataFrame for verification
+        print("CSV DataFrame Columns:\n", df.columns)
+
+        # Extract the email column as a list, preserving the original case
+        users = df['email'].tolist()
+
+        return users
+    except Exception as e:
+        # Print any error encountered during the process
+        print(f"Error reading CSV file: {e}")
+        return []
+
+# Example usage
+file_path = '/xxxx.csv' # use the name of csv file imported
+users_list = read_users_from_csv(file_path)
+print("List of Users:\n", users_list)
+
+####################################################################################################
+# Function to retrieve all users from the server with pagination
+def get_all_users():
+    all_users = []
+    req_option = TSC.RequestOptions(pagenumber=1)
+    while True:
+        users, pagination_item = server.users.get(req_option)
+        all_users.extend(users)
+        if pagination_item.page_number * pagination_item.page_size >= pagination_item.total_available:
+            break
+        req_option.pagenumber += 1
+    return all_users
+####################################################################################################
+# Function to cross-check emails and identify matches
+def cross_check_emails(server_users, csv_users):
+    server_emails = {user.name.lower(): user for user in server_users}
+    matched_users = []
+    unmatched_users = []
+    for email in csv_users:
+        email_lower = email.lower()
+        if email_lower in server_emails:
+            matched_users.append(server_emails[email_lower])
+        else:
+            unmatched_users.append(email)
+    return matched_users, unmatched_users
+####################################################################################################
+# Function to get or create a user group
+def get_or_create_group(group_name):
+    try:
+        all_groups, _ = server.groups.get()
+        for group in all_groups:
+            if group.name == group_name:
+                print(f"Group '{group_name}' already exists.")
+                return group
+        new_group = TSC.GroupItem(name=group_name)
+        new_group = server.groups.create(new_group)
+        print(f"Group '{group_name}' created successfully.")
+        return new_group
+    except TSC.ServerResponseError as e:
+        print(f"Error getting or creating group: {e}")
+        return None
+####################################################################################################
+# Function to add matched users to the group
+def add_users_to_group(group, users):
+    for user in users:
+        try:
+            server.groups.add_user(group, user.id)
+            print(f"Added user {user.name} to group {group.name}.")
+        except TSC.ServerResponseError as e:
+            print(f"Error adding user {user.name} to group: {e}")
+####################################################################################################
+# Main function to orchestrate the process
+def main():
+    users_csv_path = '/xxxx.csv'  # use the name of csv file imported
+    try:
+        print("Attempting to sign in to Tableau Server using PAT...")
+        with server.auth.sign_in(tableau_auth):
+            print("Successfully signed in to Tableau Server")
+
+            # Read users from CSV
+            csv_users = read_users_from_csv(users_csv_path)
+            if not csv_users:
+                print("No users found in CSV file.")
+                return
+
+            # Get all users from the server with pagination
+            server_users = get_all_users()
+
+            # Cross-check emails and identify matches
+            matched_users, unmatched_users = cross_check_emails(server_users, csv_users)
+
+            # Print the results
+            print("\nMatched Users:")
+            for user in matched_users:
+                print(user.name)
+            print("\nUnmatched Users from CSV:")
+            for email in unmatched_users:
+                print(email)
+
+            # Get or create the group
+            group = get_or_create_group(group_name)
+            if not group:
+                return
+
+            # Add matched users to the group
+            add_users_to_group(group, matched_users)
+
+    except TSC.ServerResponseError as e:
+        print(f"Error signing in to Tableau Server: {e}")
+
+if __name__ == "__main__":
+    main()
