@@ -26,8 +26,8 @@ def main():
     site_url_name = ""  # leave empty if there is no site name in the url (you are on the default site)
 
 # 4 - replace with Personal Access Token
-    token_name = "laiza.andriolo"
-    token_value = "x2q0lHFtRIeYSajD/B2Tig==:pcxDzOk0q0ZeTHiX0QGn0TU0q9MeVxep"
+    token_name = "xxxx"
+    token_value = "xxxx"
     tableau_auth = TSC.PersonalAccessTokenAuth(token_name, token_value, site_id=site_url_name)
 
     with server.auth.sign_in(tableau_auth):
