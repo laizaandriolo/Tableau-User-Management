@@ -1,0 +1,77 @@
+####
+# This script demonstrates how to add default permissions using TSC
+# To run the script, you must have installed Python 3.7 or later.
+#
+# In order to demonstrate adding a new default permission, this sample will create
+# a new project and add a new capability to the new project, for the default "All users" group.
+#
+# Example usage: 'python add_default_permission.py -s
+#       https://10ax.online.tableau.com --site devSite123 -u tabby@tableau.com'
+####
+# Install the required package
+!pip install tableauserverclient
+
+import logging
+import tableauserverclient as TSC
+
+# Replace these variables with your Tableau Server details
+server_url = 'https://10ax.online.tableau.com'  # Replace with your server URL
+token_name = 'xxxxx'  # Replace with your PAT name
+personal_access_token = 'xxxxx'  # Replace with your PAT
+site_id = ''  # Leave empty if using the default site
+
+# Logging level
+logging_level = 'error'  # Adjust as needed: 'debug', 'info', 'error'
+
+# Set logging level
+logging.basicConfig(level=getattr(logging, logging_level.upper()))
+
+# Create a Tableau auth object using the PAT
+tableau_auth = TSC.PersonalAccessTokenAuth(token_name, personal_access_token, site_id)
+
+# Create a server object
+server = TSC.Server(server_url, use_server_version=True)
+
+def main():
+    # Sign in to the Tableau Server
+    with server.auth.sign_in(tableau_auth):
+        print("Successfully signed in to Tableau Server")
+
+        # Create a new sample project
+        project_name = "sample_project"
+        project = TSC.ProjectItem(name=project_name)
+        project = server.projects.create(project)
+        print(f"Created project '{project.name}' with ID '{project.id}'")
+
+        # Query for existing workbook default permissions
+        server.projects.populate_workbook_default_permissions(project)
+        default_permissions = project.default_workbook_permissions[0]  # new projects have 1 grantee group
+
+        # Add "ExportXml (Allow)" workbook capability to "All Users" default group if it does not already exist
+        if TSC.Permission.Capability.ExportXml not in default_permissions.capabilities:
+            new_capabilities = {TSC.Permission.Capability.ExportXml: TSC.Permission.Mode.Allow}
+
+            # Each PermissionsRule in the list contains a grantee and a dict of capabilities
+            new_rules = [TSC.PermissionsRule(grantee=default_permissions.grantee, capabilities=new_capabilities)]
+
+            new_default_permissions = server.projects.update_workbook_default_permissions(project, new_rules)
+
+            # Print result from adding a new default permission
+            for permission in new_default_permissions:
+                grantee = permission.grantee
+                capabilities = permission.capabilities
+                print("\nCapabilities for {0} {1}:".format(grantee.tag_name, grantee.id))
+
+                for capability in capabilities:
+                    print("\t{0} - {1}".format(capability, capabilities[capability]))
+
+        # Uncomment lines below to DELETE the new capability and the new project if needed
+        # rules_to_delete = TSC.PermissionsRule(
+        #     grantee=default_permissions.grantee,
+        #     capabilities=new_capabilities
+        # )
+        # server.projects.delete_workbook_default_permissions(project, rules_to_delete)
+        # server.projects.delete(project.id)
+
+if __name__ == "__main__":
+    main()
