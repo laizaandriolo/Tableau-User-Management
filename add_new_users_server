@@ -1,0 +1,35 @@
+import pandas as pd
+
+# Read the Excel file
+file_path = "emails_test.xlsx" # add excel file to Collab
+df = pd.read_excel(file_path) # remove header
+
+# Rename the column "Email Address" to "user_name"
+df = df.rename(columns={df.columns[0]: 'user_name'}) 
+
+# Add a "password" column with the value "password"
+df['password'] = "password" 
+
+# Generate a "display_name" by modifying the "user_name"
+df['display_name'] = df['user_name'].str.replace('@.*', '', regex=True)  # Remove everything after @
+df['display_name'] = df['display_name'].str.replace('.', ' ')  # Replace dots with space
+df['display_name'] = df['display_name'].str.lower()  # Convert to lowercase
+df['display_name'] = df['display_name'].str.title()  # Capitalize first letters
+
+# Add "license_level" column with the value "Viewer"
+df['license_level'] = "Viewer"
+
+# Add "adm_level" column with the value "None"
+df['adm_level'] = "None"
+
+# Add "publication_capabilities" column with the value "true"
+df['publication_capabilities'] = "true"
+
+# Add "email_address" column by copying "user_name" values
+df['email_address'] = df['user_name']
+
+print(df) # display df
+
+# Export as CSV without headers
+csv_file_path = '/content/emails_output.csv'
+df.to_csv(csv_file_path, index=False)
