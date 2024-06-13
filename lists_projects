@@ -1,0 +1,43 @@
+!pip install tableauserverclient
+
+import logging
+import tableauserverclient as TSC
+
+# Parameters (Set these values directly)
+server = 'https://10ax.online.tableau.com'  # Replace with your server URL
+token_name = 'xxx'  # Replace with your PAT name
+token_value = 'xxxx'  # Replace with your PAT value
+site_id = ''  # Leave empty if using the default site
+logging_level = 'error'  # Adjust as needed: 'debug', 'info', 'error'
+resource_type = 'workbook'  # Set the resource type: 'workbook', 'datasource', 'project', 'view', 'job', 'webhooks'
+
+# Set logging level
+logging.basicConfig(level=getattr(logging, logging_level.upper()))
+
+# Create a Tableau auth object using the PAT
+tableau_auth = TSC.PersonalAccessTokenAuth(token_name, token_value, site_id)
+
+# Create a server object
+server_obj = TSC.Server(server, use_server_version=True)
+
+# Connect and list resources
+with server_obj.auth.sign_in(tableau_auth):
+    endpoint = {
+        "datasource": server_obj.datasources,
+        "job": server_obj.jobs,
+        "project": server_obj.projects,
+        "view": server_obj.views,
+        "webhooks": server_obj.webhooks,
+        "workbook": server_obj.workbooks,
+    }.get(resource_type)
+
+    options = TSC.RequestOptions()
+    options.sort.add(TSC.Sort(TSC.RequestOptions.Field.Name, TSC.RequestOptions.Direction.Desc))
+
+    count = 0
+    for resource in TSC.Pager(endpoint.get, options):
+        count += 1
+        print(resource.name[:18])  # Truncate name to first 18 characters
+        if count > 100:  # Limit to 100 resources
+            break
+    print("Total: {}".format(count))
